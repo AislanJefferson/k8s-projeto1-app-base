@@ -1,0 +1,89 @@
+# arquivo do kubernetes que cria persistent volume e persistent volumeclaim para armazenamento de dados no minikube para subir o backend e o database
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-volume
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/mysql-volume"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-volume-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+#deployment do database
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - image: aislan/projeto-database:1.0
+          imagePullPolicy: Always
+          args:
+            - "--ignore-db-dir=lost+found"
+          name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+            - name: MYSQL_DATABASE
+              value: meubanco
+            - name: MYSQL_USER
+              value: usuario
+            - name: MYSQL_PASSWORD
+              value: Senha123
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: mysql-volume
+              mountPath: /var/lib/mysql/
+      volumes:
+        - name: mysql-volume
+          persistentVolumeClaim:
+            claimName: mysql-volume-claim
+---
+#deployment do backend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  labels:
+    app: php
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+        - image: aislan/projeto-backend:1.0
+          imagePullPolicy: Always
+          name: php
+          ports:
+            - containerPort: 80

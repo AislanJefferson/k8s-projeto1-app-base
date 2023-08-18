@@ -1,0 +1,12 @@
+# dockerfile do backend da aplicação em um servidor apache com php-7.4
+FROM php:7.4-apache
+
+# copia arquivos para o diretorio html do apache e copia todos os arquivos php da pasta backend para o diretorio html do apache
+WORKDIR /var/www/html
+COPY *.php ./
+
+# Instalação de dependências, incluindo o driver do mysqli
+RUN apt-get update && apt-get install -y \
+    && docker-php-ext-install mysqli pdo_mysql
+
+EXPOSE 80
